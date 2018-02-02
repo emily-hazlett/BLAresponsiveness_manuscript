@@ -4,21 +4,36 @@
 %
 % Created by EHazlett 01-03-2018
 
+clearvars -except neuron
+
 window0 = [1, 100]; % window to calculate pre stim background discharge
-window1 = [101, 150]; % window to calc early response prestim = 100 poststim= 900
-window2 = [161, 361]; % window to calc late response window
-binSize = 10; %ms per bin for smaller psth
-conBins = 3; % Number of consecutive bins needed for late window to be responsive
+window1 = [1, 50]; % window to calc early response prestim = 100 poststim= 900
+window2 = [56, 200]; % window to calc late response window
+window3 = [500, 800];
+slide = 5; %ms of sliding window
+binSize = 20; %ms per bin for smaller psth
+conBins = 3;
 N_dataset = length(neuron);
 
+%% load dataset if necessary
+if exist('neuron', 'var') == 0
+    load('BLA_paper_dataset.mat')
+end
+
 %% Recalculate windows based on bin size
-window0 = ceil(window0/binSize);
-window1 = ceil(window1/binSize);
-window2 = ceil(window2/binSize);
+vne = [num2str(window1(1)-1), 'to', num2str(window1(2))];
+vnl = [num2str(window2(1)-1), 'to', num2str(window2(2))];
+
+window1 = window1 + 100;
+window2 = window2 + 100;
+window3 = window3 + 100;
+
+window1s = [ceil(window1(1)/ slide), ceil(((window1(2)-binSize)/slide))+1];
+window2s = [ceil(window2(1)/ slide), ceil(((window2(2)-binSize)/slide))+1];
+window3s = [ceil(window3(1)/ slide), ceil(((window3(2)-binSize)/slide))+1];
 
 %% Find all tests
-vne = [num2str((window1(1)-window0(2)-1)*binSize), 'to', num2str((window1(2)-window0(2))*binSize)];
-vnl = [num2str((window2(1)-window0(2)-1)*binSize), 'to', num2str((window2(2)-window0(2))*binSize)];
+
 
 testsAll = {'BBN62_free1';'BBN62_free2';'BBN62_held1';'BBN62_held2'; 'BBN30_free1';'BBN30_free2';'BBN30_held1';'BBN30_held2';};
 count = length(testsAll)+1;
@@ -45,16 +60,14 @@ clear output
 output{1, 1} = 'Neuron';
 count = 2;
 for i = 1:length(testsAll)
-    output{1, count} = [testsAll{i}, '_RMI', vne];
-    output{1, count+1} = [testsAll{i}, '_RMI', vnl];
-    output{1, count+2} = [testsAll{i}, '_responsive', vne];
-    output{1, count+3} = [testsAll{i}, '_responsive', vnl];
-    output{1, count+4} = [testsAll{i}, '_BaselineHzM'];
-    output{1, count+5} = [testsAll{i}, '_ResponseEarlyHzM'];
-    output{1, count+6} = [testsAll{i}, '_ResponseLateHzM'];
-    count = count+7;
+    output{1, count} = [testsAll{i}, '_responsive', vne];
+    output{1, count+1} = [testsAll{i}, '_responsive', vnl];
+    output{1, count+2} = [testsAll{i}, '_BaselineHzM'];
+    output{1, count+3} = [testsAll{i}, '_ResponseEarlyHzM'];
+    output{1, count+4} = [testsAll{i}, '_ResponseLateHzM'];
+    count = count+5;
 end
-count = 1;
+count = 2;
 
 %% Find each test, stim, and atten combo for each neuron
 for i = 1:N_dataset
@@ -88,59 +101,55 @@ for i = 1:N_dataset
                 [~, col] = find(isnan(psth));
                 psth(:, unique(col)) = []; % drop reps with NaN
                 [bins, reps] = size(psth);
-                
+
                 if reps < 30
+                    clear psth col bins reps
                     continue
                 end
                 
                 bin = 0;
-                for p = binSize:binSize:bins
+                for p = (binSize/2):slide:bins-(binSize/2)
                     bin = bin + 1;
-                    psthBin (bin, 1:reps) = sum(psth(p-binSize+1:p, :));
+                    psthBinSlide (bin, 1:reps) = sum(psth(p-(binSize/2)+1:p+(binSize/2), :));
                 end
+                clear p bin
                 
                 %% Spiking in windows
-                psthBinM = mean(psthBin, 2);
-                psthBinSD = std(psthBin, 0, 2);
+                bg = reshape(psth(window0(1):window0(2),:), 1, numel(psth(window0(1):window0(2),:)));
+                early = reshape(psth(window1(1):window1(2),:), 1, numel(psth(window1(1):window1(2),:)));
+                late = reshape(psth(window2(1):window2(2),:), 1, numel(psth(window2(1):window2(2),:)));
+
+                psthBinSlideHzM = (mean(psthBinSlide, 2) / binSize) * 1000;
+                baselineHzM = mean(bg) * 1000; %spikes/bin * bin/seconds = spikes/ second
+                earlyHzM = mean(early) * 1000;
+                lateHzM = mean(late) * 1000;
                 
-                baseline = sum(psthBin(window0(1):window0(2),:));
-                baselineHz = (baseline / (window0(2)-window0(1)+1)) * (1000/binSize);
-                baselineHzM = mean(baselineHz);
-                baselineHzSD = std(baselineHz);
+                %% Responsive bins
+                response = zeros(size(psthBinSlideHzM));
+                response(psthBinSlideHzM < (baselineHzM - 3)) = -1; % 3 Hz below baseline firing rate
+                response(psthBinSlideHzM > (baselineHzM + 5)) = 1; % baseline + 5 Hz
                 
-                responseEarly = sum(psthBin(window1(1):window1(2),:));
-                responseEarlyHz = (responseEarly / (window1(2)-window1(1)+1)) *(1000/binSize);
-                responseEarlyHzM = mean(responseEarlyHz);
-                responseEarlyHzSD = std(responseEarlyHz);
+                % Are any bins excited or suppressed in the early window?
+                responsiveEarly = any(response(window1s(1):window1s(2)) ~= 0);
                 
-                responseLate = sum(psthBin(window2(1):window2(2),:));
-                responseLateHz = (responseLate / (window2(2)-window2(1)+1)) *(1000/binSize);
-                responseLateHzM = mean(responseLateHz);
-                responseLateHzSD = std(responseLateHz);
-                
-                %% Find responsive bins
-                responsiveEarly = any(psthBinM(window1(1):window1(2), :) > (baselineHzM + 2*baselineHzSD)); % responsive bin in early window
-                
-                responsiveLate = psthBinM(window2(1):window2(2), :) > (baselineHzM + 2*baselineHzSD);
-                for p = 1:length(responsiveLate)-conBins+1
-                    pp(p) = sum(responsiveLate(p:p+conBins-1));
+                % Are enough consecutive bins excited in the late window?
+                responsiveLate1 = response(window2s(1):window2s(2)) == 1;
+                for pp = 1:length(responsiveLate1)-conBins+1
+                    ppp(pp) = sum(responsiveLate1(pp:pp+conBins-1));
                 end
-                responsiveLate = any(pp >= conBins);
-                responsive = responsiveEarly | responsiveLate;
-                clear pp
+                responsiveLate1 = any(ppp >= conBins);
                 
-                %% RMI
-                rmiEarly = (responseEarlyHzM - baselineHzM) / (responseEarlyHzM + baselineHzM + 0.00000001);
-                rmiLate = (responseLateHzM - baselineHzM) / (responseLateHzM + baselineHzM + 0.00000001);
-                
-%                 %% Mean PSTH responsive bins
-%                 baseline = sum(psth(background(1):background(2),:));
-%                 baselineM = mean(baseline); % Spikes per bin instead of Hz
-%                 baselineSD = std(baseline);
-%                 
-%                 response = zeros(size(psthBinM));
-%                 response((psthBinM) > (baselineM + 2*baselineSD)) = 1;
-%                 response((psthBinM) < (baselineM - 2*baselineSD)) = -1;
+                responsiveLate2 = response(window2s(1):window2s(2)) == -1;
+                for pp = 1:length(responsiveLate2)-conBins+1
+                    ppp(pp) = sum(responsiveLate2(pp:pp+conBins-1));
+                end
+                responsiveLate2 = any(ppp >= conBins);
+                responsiveLate = responsiveLate1 | responsiveLate2;
+                clear pp ppp
+
+                %% RMI              
+%                 rmiEarly = (earlyHzM - baselineHzM) / (earlyHzM + baselineHzM + 0.001);
+%                 rmiLate = (lateHzM - baselineHzM) / (lateHzM + baselineHzM + 0.001);
                 
                 %% Add data to output if there's data to add
                 if contains(tests{ii}, 'USV')
@@ -150,17 +159,16 @@ for i = 1:N_dataset
                 else
                     continue
                 end
-                output{i+1, 1} = neuron(i).name;
-                output{i+1, col*7 -6 +1} = rmiEarly;
-                output{i+1, col*7 -5 +1} = rmiLate;
-                output{i+1, col*7 -4 +1} = responsiveEarly;
-                output{i+1, col*7 -3 +1} = responsiveLate;
-                output{i+1, col*7 -2 +1} = baselineHzM;
-                output{i+1, col*7 -1 +1} = responseEarlyHzM;
-                output{i+1, col*7 -0 +1} = responseLateHzM;
+                output{count, 1} = neuron(i).name;
+                output{count, col*5 -4 +1} = responsiveEarly;
+                output{count, col*5 -3 +1} = responsiveLate;
+                output{count, col*5 -2 +1} = baselineHzM;
+                output{count, col*5 -1 +1} = earlyHzM;
+                output{count, col*5 -0 +1} = lateHzM;
                 
                 clear respons* psth* baseline* col
             end
         end
     end
+    count = count + 1;
 end

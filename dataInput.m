@@ -29,61 +29,61 @@
 
 
 
-% %% Import FRA data
-% 
-% target = 'FRA_held';
-% num = 110;
-% file = importdata ('839_060413_Char_FRA_2_SPKextract_sorted_SpreadsheetU1_2.txt');
-% stims = file.textdata(1,2:end);
-% attens = file.data(1, :); 
-% reps = file.data(2:end, :);
-% 
-% stimList = unique(stims);
-% attenList = unique(attens);
-% 
-% if isfield(neuron(num).PSTH_1msbins, target) == false
-%     disp('not a field')
-%     beep
-%     return
-% end
-% 
-% for n = 1:length(stimList)
-%     grouper = strcmp(stimList{n}, stims); % drop reps for this stim
-%     stimX = stims(:,grouper);
-%     repsX = reps(:, grouper);
-%     attensX = attens(:, grouper);
-%     for p = 1:length(attenList)
-%         grouperX = find(attensX == attenList(p)); % drop reps for this atten
-%         if isempty(stimX(grouperX)) %Don't do anything if all reps are dropped
-%             continue
-%         end
-%         stimXX = stimX(:,grouperX);
-%         repsXX = repsX(:, grouperX);
-%         switch attenList(p)
-%             case 0
-%                 attenfield = 'dB_80';
-%             case 10
-%                 attenfield = 'dB_70';
-%             case 20
-%                 attenfield = 'dB_60';
-%             case 30
-%                 attenfield = 'dB_50';
-%         end
-%         stimfield = stimList{n};
-%         stimfield = strrep(stimfield,'Hz','');
-%         stimfield = ['Hz_', stimfield];
-%         
-%         if isfield(neuron(num).PSTH_1msbins.(target), stimfield) == false
-%             disp('not a field')
-%             beep
-%             return
-%         end
-%         
-%         neuron(num).PSTH_1msbins.(target).(stimfield).(attenfield) = repsXX;
-%     end
-%     clear stimX* repsX* attensX* *field
-% end
-% clear grouper* atten* stim* rep* file n p target num
+%% Import FRA data
+
+target = 'FRA_held';
+num = 27;
+file = importdata ('881_120513_held_FRA_1_SpreadsheetUnit1.txt');
+stims = file.textdata(2,2:end);
+attens = file.data(1, :); 
+reps = file.data(2:end, :);
+
+stimList = unique(stims);
+attenList = unique(attens);
+
+if isfield(neuron(num).PSTH_1msbins, target) == false
+    disp('not a field')
+    beep
+    return
+end
+
+for n = 1:length(stimList)
+    grouper = strcmp(stimList{n}, stims); % drop reps for this stim
+    stimX = stims(:,grouper);
+    repsX = reps(:, grouper);
+    attensX = attens(:, grouper);
+    for p = 1:length(attenList)
+        grouperX = find(attensX == attenList(p)); % drop reps for this atten
+        if isempty(stimX(grouperX)) %Don't do anything if all reps are dropped
+            continue
+        end
+        stimXX = stimX(:,grouperX);
+        repsXX = repsX(:, grouperX);
+        switch attenList(p)
+            case 0
+                attenfield = 'dB_80';
+            case 10
+                attenfield = 'dB_70';
+            case 20
+                attenfield = 'dB_60';
+            case 30
+                attenfield = 'dB_50';
+        end
+        stimfield = stimList{n};
+        stimfield = strrep(stimfield,'Hz','');
+        stimfield = ['Hz_', stimfield];
+        
+        if isfield(neuron(num).PSTH_1msbins.(target), stimfield) == false
+            disp('not a field')
+            beep
+            return
+        end
+        
+        neuron(num).PSTH_1msbins.(target).(stimfield).(attenfield) = repsXX;
+    end
+    clear stimX* repsX* attensX* *field
+end
+clear grouper* atten* stim* rep* file n p target num
 
 
 %% import BBN and USV data

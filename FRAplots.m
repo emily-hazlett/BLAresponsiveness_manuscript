@@ -6,12 +6,19 @@
 % Created by EHazlett 01/01/2018
 %
 
-window = [100, 700]; % window to calc response prestim = 100 poststim= 900
-sweepLength = 1000;
-clims = [0.05, 0.95];
-% colorScale = [0, 3]; % set color scale from 0-2 spikes/second
-N_dataset = length(neuron);
-for i = 1:N_dataset
+window1 = [101, 300]; % window to calc response prestim = 100 poststim= 900
+cd('C:\BLA paper\FRA images\')
+mymap = [0,0,1
+    0,0,0.75
+    0,0,0.5
+    0,0,0.25
+    0,0,0
+    0.25,0,0
+    0.5,0,0
+    0.75,0,0
+    1,0,0];
+
+for i = 1:length(neuron)
     %% FRA Free
     if isfield(neuron(i).PSTH_1msbins, 'FRA_free') % is there a free_FRA
         fraFree_freq = replace(fieldnames(neuron(i).PSTH_1msbins.FRA_free), 'Hz_', '');
@@ -27,15 +34,15 @@ for i = 1:N_dataset
         for f = 1:length(fraFree_freq)
             for a = 1:length(fraFree_atten)
                 psth = neuron(i).PSTH_1msbins.FRA_free.(['Hz_', num2str(fraFree_freq(f))]).(['dB_', num2str(fraFree_atten(a))]);
-                m = trimmean(sum(psth(window(1):window(2), :)), 1, 'floor');
-                s = std(sum(psth(window(1):window(2), :))) + 0.0001;
-                fraFree (a,f) = m; %/s;
-                %                 imagesc(psth')
-                %                 hold on
-                %                 title([neuron(i).name, 'Hz_', num2str(fraFree_freq(f)), ' ', num2str(fraFree_atten(a))])
-                clear psth* s m
+                [~, col] = find(isnan(psth));
+                psth(:, unique(col)) = []; % drop reps with NaN
+                psth(:, sum(psth) > max(neuron(i).OverallBG.free*5,50)) = []; % drop reps with more than 100 spikes in sweep.  Fixes bursting
+                
+                fraFree (a,f) = mean(sum(psth(window1(1):window1(2), 1:end-1)));
+                clear psth
             end
         end
+        neuron(i).PSTH.free = fraFree;
     else
     end
     
@@ -54,70 +61,97 @@ for i = 1:N_dataset
         for f = 1:length(fraHeld_freq)
             for a = 1:length(fraHeld_atten)
                 psth = neuron(i).PSTH_1msbins.FRA_held.(['Hz_', num2str(fraHeld_freq(f))]).(['dB_', num2str(fraHeld_atten(a))]);
-                m = trimmean(sum(psth(window(1):window(2), :)), 5, 'floor');
-                s = std(sum(psth(window(1):window(2), :))) + 0.0001;
-                fraHeld (a,f) = m; %/s;
-                %                 imagesc(psth')
-                %                 hold on
-                %                 title([neuron(i).name, 'Hz_', num2str(fraFree_freq(f)), ' ', num2str(fraFree_atten(a))])
-                clear psth* s m
+                [~, col] = find(isnan(psth));
+                psth(:, unique(col)) = []; % drop reps with NaN
+                psth(:, sum(psth) > max(neuron(i).OverallBG.held*5,50)) = []; % drop reps with more than 100 spikes in sweep.  Fixes bursting
+                
+                fraHeld (a,f) = mean(sum(psth(window1(1):window1(2), 1:end-1)));
+                clear psth
             end
         end
+        neuron(i).PSTH.held = fraHeld;
     else
     end
     
-    
-    %% Plot FRAs
-    figure;
-    set(gcf,'position', [0, 0, 1250, 375])
-    if exist('fraFree', 'var') == 1
-        if any(isnan(fraFree))
-            disp('nans idiot')
-            return
-        end
-        % actual mean spikes per window
-        colorScale = quantile(reshape(fraFree, 1, numel(fraFree)), clims);
-        colorScale (2) = colorScale(2) + 0.1;
-        ax(1) = subplot(1, 2, 1);
-        imagesc([min(fraFree_freq), max(fraFree_freq)], ...
-            [min(fraFree_atten), max(fraFree_atten)], ...
-            fraFree)
-        title(ax(1), [neuron(i).name, ' FRA free'])
-        ylabel(ax(1), 'dB SPL')
-        xlabel(ax(1), 'Frequency (kHz)')
-        set(ax(1), 'TickLength',[0 0])
-        set(ax(1), 'YTick', fliplr(fraFree_atten'))
-        set(ax(1), 'YTickLabel', num2str(fraFree_atten))
-        set(ax(1), 'CLim', colorScale)
-        c = colorbar;
-        c.Ticks = colorScale;
-        c.Location = 'eastOutside';
-        
-    end
-    if exist('fraHeld', 'var') == 1
-        if any(isnan(fraHeld))
-            disp('nans idiot')
-            return
-        end
-        colorScale = quantile(reshape(fraHeld, 1, numel(fraHeld)), clims);
-        colorScale (2) = colorScale(2) + 0.1;
-        ax(2) = subplot(1, 2, 2);
-        imagesc([min(fraHeld_freq), max(fraHeld_freq)], ...
-            [min(fraHeld_atten), max(fraHeld_atten)], ...
-            fraHeld)
-        title(ax(2), [neuron(i).name, ' FRA held'])
-        ylabel(ax(2), 'dB SPL')
-        xlabel(ax(2), 'Frequency (kHz)')
-        set(ax(2), 'TickLength',[0 0])
-        set(ax(2), 'YTick', fliplr(fraHeld_atten'))
-        set(ax(2), 'YTickLabel', num2str(fraHeld_atten))
-        set(ax(2), 'CLim', colorScale)
-        c = colorbar;
-        c.Ticks = colorScale;
-        c.Location = 'eastOutside';
-        
-    end
-    clear ax fra*
-    %     print('-dtiff','-r500',['C:\BLA paper\FRA images\', neuron(i).name, ' FRA.tif'])
-    
+%     %% Plot FRAs
+%     figure;
+%     set(gcf,'position', [0, 0, 1250, 800])
+%     if exist('fraFree', 'var') == 1
+%         if any(isnan(fraFree))
+%             disp('nans idiot')
+%             return
+%         end
+%         % actual mean spikes per window
+%         ax(1) = subplot(2, 2, 1);
+%         imagesc([min(fraFree_freq), max(fraFree_freq)], ...
+%             [min(fraFree_atten), max(fraFree_atten)], ...
+%             fraFree)
+%         title(ax(1), [neuron(i).name, ' FRA free - Spike Count'])
+%         ylabel(ax(1), 'dB SPL')
+%         xlabel(ax(1), 'Frequency (kHz)')
+%         set(ax(1), 'TickLength',[0 0])
+%         set(ax(1), 'YTick', fliplr(fraFree_atten'))
+%         set(ax(1), 'YTickLabel', num2str(fraFree_atten))
+%         c = colorbar;
+%         c.Location = 'eastOutside';
+%         
+%         fraFree = (fraFree*(1000/(window1(2)-window1(1)+1)) - neuron(i).OverallBG.free) ...
+%             ./ (fraFree*(1000/(window1(2)-window1(1)+1)) + neuron(i).OverallBG.free + 0.001);
+%         
+%         ax(2) = subplot(2, 2, 3);
+%         imagesc([min(fraFree_freq), max(fraFree_freq)], ...
+%             [min(fraFree_atten), max(fraFree_atten)], ...
+%             fraFree)
+%         title(ax(2), [neuron(i).name, ' FRA free - RMI'])
+%         ylabel(ax(2), 'dB SPL')
+%         xlabel(ax(2), 'Frequency (kHz)')
+%         set(ax(2), 'TickLength',[0 0])
+%         set(ax(2), 'YTick', fliplr(fraFree_atten'))
+%         set(ax(2), 'YTickLabel', num2str(fraFree_atten))
+%         set(ax(2), 'CLim', [-1, 1])
+%         colormap(ax(2), mymap)
+%         c = colorbar;
+%         c.Location = 'eastOutside';
+%     end
+%     
+%     if exist('fraHeld', 'var') == 1
+%         if any(isnan(fraHeld))
+%             disp('nans idiot')
+%             return
+%         end
+%         ax(3) = subplot(2, 2, 2);
+%         imagesc([min(fraHeld_freq), max(fraHeld_freq)], ...
+%             [min(fraHeld_atten), max(fraHeld_atten)], ...
+%             fraHeld)
+%         title(ax(3), [neuron(i).name, ' FRA held - Spike Count'])
+%         ylabel(ax(3), 'dB SPL')
+%         xlabel(ax(3), 'Frequency (kHz)')
+%         set(ax(3), 'TickLength',[0 0])
+%         set(ax(3), 'YTick', fliplr(fraHeld_atten'))
+%         set(ax(3), 'YTickLabel', num2str(fraHeld_atten))
+%         c = colorbar;
+%         c.Location = 'eastOutside';
+%         
+%         fraHeld = (fraHeld*(1000/(window1(2)-window1(1)+1)) - neuron(i).OverallBG.held) ...
+%             ./ (fraHeld*(1000/(window1(2)-window1(1)+1)) + neuron(i).OverallBG.held + 0.001);
+%         
+%         ax(4) = subplot(2, 2, 4);
+%         imagesc([min(fraHeld_freq), max(fraHeld_freq)], ...
+%             [min(fraHeld_atten), max(fraHeld_atten)], ...
+%             fraHeld)
+%         title(ax(4), [neuron(i).name, ' FRA held - RMI'])
+%         ylabel(ax(4), 'dB SPL')
+%         xlabel(ax(4), 'Frequency (kHz)')
+%         set(ax(4), 'TickLength',[0 0])
+%         set(ax(4), 'YTick', fliplr(fraHeld_atten'))
+%         set(ax(4), 'YTickLabel', num2str(fraHeld_atten))
+%         set(ax(4), 'CLim', [-1, 1])
+%         colormap(ax(4), mymap)
+%         c = colorbar;
+%         c.Location = 'eastOutside';
+% 
+%     end
+%     saveas(gca,[neuron(i).name, ' FRA'], 'tiff')
+%     close all
+    clear fra*
 end
