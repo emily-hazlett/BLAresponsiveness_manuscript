@@ -28,11 +28,10 @@ count = 1;
 %% Find each test, stim, and atten combo for each neuron
 for i = 1:length(neuron)
     tests = fieldnames(neuron(i).PSTH_1msbins);
-    drop1 = contains(tests, 'FRA'); % don't run on FRA or ISG tests
-    drop2 = contains(tests, 'ISG');
-    drop3 = contains(tests, 'RLF');
-    drop4 = contains(tests, 'USV');
-    tests(drop1|drop2|drop3|drop4) = [];
+    drop1 = contains(tests, 'BBN'); % don't run on FRA or ISG tests
+    drop2 = contains(tests, 'RLF');
+    drop3 = contains(tests, 'ISG');
+    tests(drop2|drop3|~drop1) = [];
     clear drop*
     if isempty(tests) == 1 % Dont continue if there's no tests left
         continue
@@ -103,10 +102,10 @@ for i = 1:length(neuron)
                 lateHzM = mean(late) * 1000;
 %                 lateHzM = mean(late) / (window2(2)-window2(1)+1)) * 1000;
                 
-                minner = baselineHzM - 3;
-                maxxer = baselineHzM + 5;
+                minner = neuron(i).OverallBG.held - 3;
+                maxxer = neuron(i).OverallBG.held + 5;
                 
-                %                 response = (psthBinSlideHzM - baselineHzM) ./ (psthBinSlideHzM + baselineHzM + 0.01);
+%                 response = log10((psthBinHzM + 20) ./ (neuron(i).OverallBG.free + 20));
                 response = zeros(size(psthBinHzM));
                 response(psthBinHzM < minner) = -1;
                 response(psthBinHzM > maxxer) = 1; % min of 3 spikes over all the reps to be excited
