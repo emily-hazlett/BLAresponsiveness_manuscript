@@ -24,7 +24,8 @@ windowResponse = windowResponse + 100;
 windowResponseSlide = [ceil(windowResponse(1)/ slide), ceil(((windowResponse(2)-binSize)/slide))+1];
 
 %% Find all tests
-testsAll = {'BBN62_free1';'BBN62_free2';'BBN62_held1';'BBN62_held2'; 'BBN30_free1';'BBN30_free2';'BBN30_held1';'BBN30_held2';};
+testsAll = {'Tones'; 'BBN30_free1'};
+% testsAll = {'Tones';'Tones_Held';'BBN62_free1';'BBN62_free2';'BBN62_held1';'BBN30_free1';'BBN30_free2';'BBN30_held1';};
 % testsAll = {'BBN62_free1';'BBN30_free1'};
 count = length(testsAll)+1;
 
@@ -33,28 +34,29 @@ for i = 1:length(usvAll)
     testsAll{count, 1} = [usvAll{i}, '_rand_free1'];
     count = count + 1;
 end
-for i = 1:length(usvAll)
-    testsAll{count, 1} = [usvAll{i}, '_rand_free2'];
-    count = count + 1;
-end
-for i = 1:length(usvAll)
-    testsAll{count, 1} = [usvAll{i}, '_rand_held1'];
-    count = count + 1;
-end
-for i = 1:length(usvAll)
-    testsAll{count, 1} = [usvAll{i}, '_rep_free'];
-    count = count + 1;
-end
+% for i = 1:length(usvAll)
+%     testsAll{count, 1} = [usvAll{i}, '_rand_free2'];
+%     count = count + 1;
+% end
+% for i = 1:length(usvAll)
+%     testsAll{count, 1} = [usvAll{i}, '_rand_held1'];
+%     count = count + 1;
+% end
+% for i = 1:length(usvAll)
+%     testsAll{count, 1} = [usvAll{i}, '_rep_free'];
+%     count = count + 1;
+% end
 
 clear output
 output{1, 1} = 'Neuron';
 count = 2;
 for i = 1:length(testsAll)
-%     output{1, count} = [testsAll{i}, '_SMI'];
-%     output{1, count+1} = [testsAll{i}, '_duration'];
-    output{1, count} = [testsAll{i}, '_firstspikelatency'];
-%     output{1, count+3} = [testsAll{i}, '_baselineHz'];
-    count = count+1;
+    output{1, count} = [testsAll{i}, '_responsive'];
+    output{1, count+1} = [testsAll{i}, '_SMI'];
+    output{1, count+2} = [testsAll{i}, '_duration'];
+    output{1, count+3} = [testsAll{i}, '_latency'];
+    output{1, count+4} = [testsAll{i}, '_baselineHz'];
+    count = count+5;
 end
 count = 2;
 
@@ -64,7 +66,11 @@ for i = 1:N_dataset
     drop1 = contains(tests, 'FRA'); % don't run on FRA or ISG tests
     drop2 = contains(tests, 'ISG');
     drop3 = contains(tests, 'RLF');
-    tests(drop1|drop2|drop3) = [];
+    drop4 = contains(tests, 'held');
+    drop5 = contains(tests, 'rep');
+    drop6 = contains(tests, 'Tones_Held');
+    drop7 = contains(tests, 'free2');
+    tests(drop1|drop2|drop3|drop4|drop5|drop6|drop7) = [];
     
     clear drop*
     if isempty(tests) == 1 % Dont continue if there's no tests left
@@ -86,7 +92,7 @@ for i = 1:N_dataset
         for iii = 1:length(stim)
             atten = fieldnames(neuron(i).PSTH_1msbins.(tests{ii}).(stim{iii}));
             %Batch through all attenuations
-            for iiii = 1:length(atten)
+            for iiii = 1% :length(atten)
                 %% Bin PSTH
                 psth = neuron(i).PSTH_1msbins.(tests{ii}).(stim{iii}).(atten{iiii});
                 [~, col] = find(isnan(psth));
@@ -153,10 +159,11 @@ for i = 1:N_dataset
                 end
                 
                 output{count, 1} = neuron(i).name;
-%                 output{count, col*4 -3 +1} = responsiveMetric;
-%                 output{count, col*4 -2 +1} = nBinsOver;
-                output{count, col*1 -0 +1} = latency;
-%                 output{count, col*4 -0 +1} = baselineHzM;
+                output{count, col*5 -4 +1} = responsive;
+                output{count, col*5 -3 +1} = responsiveMetric;
+                output{count, col*5 -2 +1} = nBinsOver;
+                output{count, col*5 -1 +1} = latency;
+                output{count, col*5 -0 +1} = baselineHzM;
                 
                 clear respons* psth* baseline* col nBinsOver latency l
             end

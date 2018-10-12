@@ -1,4 +1,4 @@
-clearvars -except neuron
+clearvars -except neuron*
 
 window0 = [1, 100]; % window to calculate pre stim background discharge
 window1 = [1, 200]; % early window
@@ -26,22 +26,19 @@ output{1, 8} = ['Responsive_', num2str(binSize),'ms'];
 count = 1;
 
 %% Find each test, stim, and atten combo for each neuron
-for i = 85 %24% 85 %56%85 % 1:length(neuron)
-    tests = fieldnames(neuron(i).PSTH_1msbins);
-    drop1 = contains(tests, 'RLF'); % don't run on FRA or ISG tests
-    drop2 = contains(tests, 'FRA');
+for i = 2 %24% 85 %56%85 % 1:length(neuron)
+    tests = fieldnames(neuronselect(i).PSTH_1msbins);
+    drop1 = contains(tests, 'USV'); % don't run on FRA or ISG tests
+    drop2 = contains(tests, 'RLF');
     drop3 = contains(tests, 'ISG');
-    drop4 = contains(tests, 'Tones');
-    drop5 = contains(tests, 'free2');
-    drop6 = contains(tests, 'held2');
-    tests(drop1|drop2|drop3|drop4|drop5|drop6) = [];
+    tests(~drop2|drop3|drop1) = [];
     clear drop*
     if isempty(tests) == 1 % Dont continue if there's no tests left
         continue
     end
     % Batch through all tests
     for ii = 1:length(tests)
-        stim = fieldnames(neuron(i).PSTH_1msbins.(tests{ii}));
+        stim = fieldnames(neuronselect(i).PSTH_1msbins.(tests{ii}));
         drop1 = contains(stim, 'Appease'); % don't run these stim
         drop2 = contains(stim, 'LowAgg');
         drop3 = contains(stim, 'Biosonar');
@@ -53,18 +50,42 @@ for i = 85 %24% 85 %56%85 % 1:length(neuron)
         % Batch through all stimuli
         figure('units','normalized','outerposition',[0 0 1 1])
         for iii = 1:length(stim)
-            atten = fieldnames(neuron(i).PSTH_1msbins.(tests{ii}).(stim{iii}));
-            if contains(tests{ii}, 'held')
-                overallBG = neuron(i).OverallBG.held;
-            elseif contains(tests{ii}, 'free')
-                overallBG = neuron(i).OverallBG.free;
-            else
-                overallBG = 999;
-            end
+            atten = fieldnames(neuronselect(i).PSTH_1msbins.(tests{ii}).(stim{iii}));
             %Batch through all attenuations
             for iiii = 1:length(atten)
                 %% Bin PSTH
-                psth = neuron(i).PSTH_1msbins.(tests{ii}).(stim{iii}).(atten{iiii});
+                psth = neuronselect(i).PSTH_1msbins.(tests{ii}).(stim{iii}).(atten{iiii});
+                [~, col] = find(isnan(psth));
+                psth(:, unique(col)) = []; % drop reps with NaN
+                [bins, reps] = size(psth);
+                
+                if reps < 30
+                    clear psth col bins reps
+                    continue
+                end
+                
+                bin=0;
+                for p = binSize:binSize:bins
+                    bin = bin + 1;
+                    psthBin (bin, 1:reps) = sum(psth(p-binSize+1:p, :));
+                end
+                
+                bin = 0;
+                for p = (binSize/2):slide:bins-(binSize/2)
+                    bin = bin + 1;
+                    psthBinSlide (bin, 1:reps) = sum(psth(p-(binSize/2)+1:p+(binSize/2), :));
+                end
+                clear p bin
+                psthBinHzM = (mean(psthBin, 2) / binSize) * 1000;
+                psthBinSlideHzM = (mean(psthBinSlide, 2) / binSize) * 1000;
+                scaler(iiii) = max(psthBinSlideHzM);
+            end
+            
+            %% Plot
+            for iiii = 1:length(atten)
+                spacer = max(scaler) / reps;
+
+                psth = neuronselect(i).PSTH_1msbins.(tests{ii}).(stim{iii}).(atten{iiii});
                 [~, col] = find(isnan(psth));
                 psth(:, unique(col)) = []; % drop reps with NaN
                 [bins, reps] = size(psth);
@@ -101,27 +122,31 @@ for i = 85 %24% 85 %56%85 % 1:length(neuron)
                 earlyHzM = mean(early) * 1000;
                 lateHzM = mean(late) * 1000;
                 
-                heighth = 150; % max(psthBinSlideHzM);
-                spacer = heighth / reps;
-                
                 [row, col] = find(psth);
-                ax(iiii) = subplot(3, 4, iii);
-                scatter(row-100, col*spacer, 1, 'filled', 'k')
+                ax(iiii) = subplot(length(atten), 1, iiii);
+                fill([0, 200, 200, 0], [0, 0, max(scaler)+5, max(scaler)+5], [0.9 0.9 0.9])
                 hold on
                 plot(linspace(-100, 900, length(psthBinSlideHzM)), psthBinSlideHzM', 'k', 'linewidth', 2)
-                ylim([-2 heighth+2])
-                xlim([-105 905])
-                title([neuron(i).name, '-',strrep(tests{ii}, 'USV', stim{iii}), ' atten', atten{iiii}], 'Interpreter', 'none')
+                scatter(row-100, col*spacer, 1, [0.3 0.3 0.3], 'filled')
+                xlim([-110 910])
+                title([neuronselect(i).name, '-',strrep(tests{ii}, 'USV', stim{iii}), ' atten', atten{iiii}], 'Interpreter', 'none')
                 clear col
-                scaler(iiii) = max(psthBinSlideHzM);
+                
                 
                 
                 clear respons* psth* baseline* col bg
             end
         end
-        %          saveas(gca,[neuron(i).name, ' raster_',num2str(tests{ii})], 'tiffn')
+        %          saveas(gca,[neuronselect(i).name, ' raster_',num2str(tests{ii})], 'tiffn')
         %         close all
-        set(ax, 'YLim', [-2, heighth]);% max(scaler)])
-        clear ax scaler
+        set(ax, 'YLim', [-0.5, max(scaler)+5])
+        set(ax, 'TickDir', 'out')
+        set(ax, 'FontName', 'Arial Narrow')
+        set(ax, 'fontsize', 8)
+        set(ax, 'xcolor', 'k')
+        set(ax, 'ycolor', 'k')
+        set(ax, 'color', 'none')
+        set(ax, 'box', 'off')
+%         clear ax scaler
     end
 end
