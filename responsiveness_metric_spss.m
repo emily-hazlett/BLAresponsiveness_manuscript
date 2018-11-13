@@ -24,9 +24,9 @@ windowResponse = windowResponse + 100;
 windowResponseSlide = [ceil(windowResponse(1)/ slide), ceil(((windowResponse(2)-binSize)/slide))+1];
 
 %% Find all tests
-testsAll = {'Tones'; 'BBN30_free1'};
-% testsAll = {'Tones';'Tones_Held';'BBN62_free1';'BBN62_free2';'BBN62_held1';'BBN30_free1';'BBN30_free2';'BBN30_held1';};
-% testsAll = {'BBN62_free1';'BBN30_free1'};
+% testsAll = {'Tones'; 'BBN30_free1'};
+testsAll = {'Tones';'Tones_Held';'BBN62_free1';'BBN62_free2';'BBN62_held1';'BBN30_free1';'BBN30_free2';'BBN30_held1'};
+% testsAll = {'BBN62_free1';'BBN62_held1'};
 count = length(testsAll)+1;
 
 usvAll = {'HighAgg';'p100_1';'p100_10';'p100_11';'p100_2';'p100_3';'p100_4';'p100_5';'p100_6';'p100_7';'p100_8';'p100_9'};
@@ -34,18 +34,18 @@ for i = 1:length(usvAll)
     testsAll{count, 1} = [usvAll{i}, '_rand_free1'];
     count = count + 1;
 end
-% for i = 1:length(usvAll)
-%     testsAll{count, 1} = [usvAll{i}, '_rand_free2'];
-%     count = count + 1;
-% end
-% for i = 1:length(usvAll)
-%     testsAll{count, 1} = [usvAll{i}, '_rand_held1'];
-%     count = count + 1;
-% end
-% for i = 1:length(usvAll)
-%     testsAll{count, 1} = [usvAll{i}, '_rep_free'];
-%     count = count + 1;
-% end
+for i = 1:length(usvAll)
+    testsAll{count, 1} = [usvAll{i}, '_rand_free2'];
+    count = count + 1;
+end
+for i = 1:length(usvAll)
+    testsAll{count, 1} = [usvAll{i}, '_rand_held1'];
+    count = count + 1;
+end
+for i = 1:length(usvAll)
+    testsAll{count, 1} = [usvAll{i}, '_rep_free'];
+    count = count + 1;
+end
 
 clear output
 output{1, 1} = 'Neuron';
@@ -61,16 +61,16 @@ end
 count = 2;
 
 %% Find each test, stim, and atten combo for each neuron
-for i = 1:N_dataset
+for i =  1:N_dataset
     tests = fieldnames(neuron(i).PSTH_1msbins);
     drop1 = contains(tests, 'FRA'); % don't run on FRA or ISG tests
     drop2 = contains(tests, 'ISG');
     drop3 = contains(tests, 'RLF');
-    drop4 = contains(tests, 'held');
-    drop5 = contains(tests, 'rep');
-    drop6 = contains(tests, 'Tones_Held');
-    drop7 = contains(tests, 'free2');
-    tests(drop1|drop2|drop3|drop4|drop5|drop6|drop7) = [];
+%     drop4 = contains(tests, 'USV');
+%     drop5 = contains(tests, 'rep');
+%     drop6 = contains(tests, 'Tones_Held');
+%     drop7 = contains(tests, 'free2');
+    tests(drop1|drop2|drop3) = [];
     
     clear drop*
     if isempty(tests) == 1 % Dont continue if there's no tests left

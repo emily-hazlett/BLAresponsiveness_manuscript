@@ -1,10 +1,10 @@
-count = 1;
-for i = 1:length(neuron)
-    if strcmp (neuron(i).name, neuronIndex{count})
-        neuron(i).Responsive.USV = responsive(count);
-        count = count+1;
-    end
-end
+% count = 1;
+% for i = 1:length(neuron)
+%     if strcmp (neuron(i).name, neuronIndex{count})
+%         neuron(i).Responsive.USV = responsive(count);
+%         count = count+1;
+%     end
+% end
 
 
 

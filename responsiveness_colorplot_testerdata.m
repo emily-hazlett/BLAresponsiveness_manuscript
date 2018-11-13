@@ -26,8 +26,8 @@ output{1, 8} = ['Responsive_', num2str(binSize),'ms'];
 count = 1;
 
 %% Find each test, stim, and atten combo for each neuron
-for i = 56%79:81 %24% 85 %56%85 % 1:length(neuron)
-    tests = fieldnames(neuron(i).PSTH_1msbins);
+for i = 2% 1:length(neurontest)
+    tests = fieldnames(neurontest(i).PSTH_1msbins);
     drop1 = contains(tests, 'RLF'); % don't run on FRA or ISG tests
     drop2 = contains(tests, 'FRA');
     drop3 = contains(tests, 'ISG');
@@ -41,7 +41,7 @@ for i = 56%79:81 %24% 85 %56%85 % 1:length(neuron)
     end
     % Batch through all tests
     for ii = 1:length(tests)
-        stim = fieldnames(neuron(i).PSTH_1msbins.(tests{ii}));
+        stim = fieldnames(neurontest(i).PSTH_1msbins.(tests{ii}));
         drop1 = contains(stim, 'Appease'); % don't run these stim
         drop2 = contains(stim, 'LowAgg');
         drop3 = contains(stim, 'Biosonar');
@@ -54,18 +54,18 @@ for i = 56%79:81 %24% 85 %56%85 % 1:length(neuron)
         % Batch through all stimuli
         figure('units','normalized','outerposition',[0 0 1 1])
         for iii = 1:length(stim)
-            atten = fieldnames(neuron(i).PSTH_1msbins.(tests{ii}).(stim{iii}));
-            if contains(tests{ii}, 'held')
-                overallBG = neuron(i).OverallBG.held;
-            elseif contains(tests{ii}, 'free')
-                overallBG = neuron(i).OverallBG.free;
-            else
-                overallBG = 999;
-            end
+            atten = fieldnames(neurontest(i).PSTH_1msbins.(tests{ii}).(stim{iii}));
+%             if contains(tests{ii}, 'held')
+%                 overallBG = neurontest(i).OverallBG.held;
+%             elseif contains(tests{ii}, 'free')
+%                 overallBG = neurontest(i).OverallBG.free;
+%             else
+%                 overallBG = 999;
+%             end
             %Batch through all attenuations
             for iiii = 1:length(atten)
                 %% Bin PSTH
-                psth = neuron(i).PSTH_1msbins.(tests{ii}).(stim{iii}).(atten{iiii});
+                psth = neurontest(i).PSTH_1msbins.(tests{ii}).(stim{iii}).(atten{iiii});
                 [~, col] = find(isnan(psth));
                 psth(:, unique(col)) = []; % drop reps with NaN
                 [bins, reps] = size(psth);
@@ -112,7 +112,7 @@ for i = 56%79:81 %24% 85 %56%85 % 1:length(neuron)
                 plot(linspace(-100, 900, length(psthBinSlideHzM)), psthBinSlideHzM', 'k', 'linewidth', 2)
                 ylim([-2 heighth+2])
                 xlim([-105 905])
-                title([neuron(i).name, '-',strrep(tests{ii}, 'USV', stim{iii}), ' atten', atten{iiii}], 'Interpreter', 'none')
+                title([neurontest(i).name, '-',strrep(tests{ii}, 'USV', stim{iii}), ' atten', atten{iiii}], 'Interpreter', 'none')
                 clear col
                 scaler(iiii) = max(psthBinSlideHzM);
                 
@@ -120,7 +120,7 @@ for i = 56%79:81 %24% 85 %56%85 % 1:length(neuron)
                 clear respons* psth* baseline* col bg
             end
         end
-        %          saveas(gca,[neuron(i).name, ' raster_',num2str(tests{ii})], 'tiffn')
+        %          saveas(gca,[neurontest(i).name, ' raster_',num2str(tests{ii})], 'tiffn')
         %         close all
         set(ax, 'YLim', [-2, heighth]);% max(scaler)])
         clear ax scaler
