@@ -1,5 +1,9 @@
 clearvars -except maxslide
-
+maxslideSMI = p;
+bbnAll = {'BBN_30'};
+toneAll = {'Hz_15000'; 'Hz_20000'; 'Hz_25000'; 'Hz_30000'; 'Hz_35000'; 'Hz_40000'};
+syllableAll = {'Biosonar'; 'DFM_QCFl'; 'DFMl'; 'DFMl_QCFl_UFM'; 'DFMs'; 'QCF'; 'UFM'; 'rBNBl'; 'rBNBs'; 'sAFM'; 'sHFM'; 'sinFM'; 'torQCF'};
+stringAll = {'App1_string'; 'App2_string'; 'High1_string'; 'High3_string'; 'Low3_string'; 'Med1_string'; 'Tone25_string'; 'search2_string'};
 stimList = {'Allfreqs'; 'BBN_30ms'; 'HighAgg'; 'p100_9'; 'p100_11'; 'p100_2'; 'p100_3'; ...
     'p100_1'; 'p100_4'; 'p100_5'; 'p100_6'; 'p100_7'; 'p100_8'; ...
     'p100_10'; };
@@ -7,37 +11,37 @@ for i = 1:length(stimList)
     eval([stimList{i},' = [];']);
 end
 
-for p = 1:length(maxslide)
-    i = maxslide{p,2};
+for p = 1:length(maxslideSMI)
+    i = maxslideSMI{p,2};
     switch i
         case 'Allfreqs'
-            Allfreqs = [Allfreqs, maxslide{p,1}];
+            Allfreqs = [Allfreqs, maxslideSMI{p,1}];
         case 'BBN_30ms'
-            BBN_30ms = [BBN_30ms, maxslide{p,1}];
+            BBN_30ms = [BBN_30ms, maxslideSMI{p,1}];
         case 'HighAgg'
-            HighAgg = [HighAgg,maxslide{p,1}];
+            HighAgg = [HighAgg,maxslideSMI{p,1}];
         case 'p100_1'
-            p100_1 = [p100_1, maxslide{p,1}];
+            p100_1 = [p100_1, maxslideSMI{p,1}];
         case 'p100_2'
-            p100_2 = [p100_2, maxslide{p,1}];
+            p100_2 = [p100_2, maxslideSMI{p,1}];
         case 'p100_3'
-            p100_3 = [p100_3, maxslide{p,1}];
+            p100_3 = [p100_3, maxslideSMI{p,1}];
         case 'p100_4'
-            p100_4 = [p100_4, maxslide{p,1}];
+            p100_4 = [p100_4, maxslideSMI{p,1}];
         case 'p100_5'
-            p100_5 = [p100_5, maxslide{p,1}];
+            p100_5 = [p100_5, maxslideSMI{p,1}];
         case 'p100_6'
-            p100_6 = [p100_6, maxslide{p,1}];
+            p100_6 = [p100_6, maxslideSMI{p,1}];
         case 'p100_7'
-            p100_7 = [p100_7, maxslide{p,1}];
+            p100_7 = [p100_7, maxslideSMI{p,1}];
         case 'p100_8'
-            p100_8 = [p100_8, maxslide{p,1}];
+            p100_8 = [p100_8, maxslideSMI{p,1}];
         case 'p100_9'
-            p100_9 = [p100_9, maxslide{p,1}];
+            p100_9 = [p100_9, maxslideSMI{p,1}];
         case 'p100_10'
-            p100_10 = [p100_10, maxslide{p,1}];
+            p100_10 = [p100_10, maxslideSMI{p,1}];
         case 'p100_11'
-            p100_11 = [p100_11, maxslide{p,1}];
+            p100_11 = [p100_11, maxslideSMI{p,1}];
     end
 end
 
